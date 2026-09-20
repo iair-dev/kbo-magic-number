@@ -118,6 +118,22 @@ kubectl apply -f argocd/application.yaml
 안전합니다. `npm run db:generate`로 새 마이그레이션을 만들면 `k8s/migration-job.yaml`의
 ConfigMap에도 같은 SQL을 추가해야 합니다.
 
+### 검증 기록 (2026-09-20)
+
+- GitHub Actions arm64 빌드 → OCIR 푸시 → 매니페스트 태그 커밋 → ArgoCD 동기화
+- PreSync 마이그레이션 Job: 스키마 4개 테이블 생성, 재실행 시 건너뜀 확인
+- SealedSecret 복호화 성공, 파드 기동 후 `/api/health` 200 (`databaseConfigured: true`)
+- `/api/sync` 수동 실행 → PostgreSQL에 games 712행 · standings 10행 · teams 10행 적재
+- https://kbo.iair.dev HTTP/2 200 (Cloudflare Universal SSL, 인증서 작업 없음)
+
+### 알아둘 것
+
+- `replicas: 1`입니다. Next.js가 KBO 응답과 계산 결과를 **프로세스 메모리**에 5분간
+  캐시하므로 파드를 늘리면 캐시가 파드별로 따로 놀아 새로고침마다 숫자가 튑니다.
+  늘리려면 먼저 공유 캐시로 바꿔야 합니다.
+- 루트 파일시스템이 읽기전용이라 `.next/cache`와 `/tmp`를 emptyDir로 붙였고,
+  `fsGroup: 1001`이 있어야 앱 사용자가 쓸 수 있습니다.
+
 ## 주요 경로
 
 | 경로 | 역할 |
