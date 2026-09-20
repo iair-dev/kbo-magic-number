@@ -40,7 +40,7 @@ spec:
         runAsGroup: 1001
       containers:
         - name: kbo-magic-number
-          image: icn.ocir.io/cnllupo1f1x2/kbo-magic-number:latest
+          image: icn.ocir.io/cnllupo1f1x2/kbo-magic-number:dc658b7a1c81ef814c24d35053ed6f0e2a2a3753
           ports: [{containerPort: 3000}]
           securityContext:
             allowPrivilegeEscalation: false
