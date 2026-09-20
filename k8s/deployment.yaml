@@ -38,6 +38,9 @@ spec:
         # 루트로 뜨지 않습니다.
         runAsUser: 1001
         runAsGroup: 1001
+        # 아래 emptyDir 볼륨을 이 그룹 소유로 만듭니다. 없으면 root 소유로 마운트돼
+        # 루트 파일시스템을 읽기전용으로 잠근 상태에서 캐시를 쓰지 못합니다.
+        fsGroup: 1001
       containers:
         - name: kbo-magic-number
           image: icn.ocir.io/cnllupo1f1x2/kbo-magic-number:dc658b7a1c81ef814c24d35053ed6f0e2a2a3753
