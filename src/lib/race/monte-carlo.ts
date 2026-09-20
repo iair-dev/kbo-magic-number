@@ -58,6 +58,8 @@ export function simulateSeason(
   scheduled: Game[],
   unscheduled: UnscheduledGame[],
   completed: Game[],
+  // 주차별 추이는 시점마다 다시 돌려야 해서 더 적은 횟수로 부른다.
+  runs: number = SIMULATIONS,
 ): SimulationResult {
   const teams = standings.map((row) => row.team);
   const teamCount = teams.length;
@@ -105,7 +107,7 @@ export function simulateSeason(
   const order = Array.from({ length: teamCount }, (_, index) => index);
   const random = mulberry32(0x4b424f21);
 
-  for (let run = 0; run < SIMULATIONS; run += 1) {
+  for (let run = 0; run < runs; run += 1) {
     wins.set(baseWins);
     losses.set(baseLosses);
     edge.set(baseEdge);
@@ -148,7 +150,7 @@ export function simulateSeason(
 
   const projections = standings.map((row, team) => {
     const counts = rankCounts[team];
-    const rankDistribution = Array.from(counts, (count) => count / SIMULATIONS);
+    const rankDistribution = Array.from(counts, (count) => count / runs);
 
     let cumulative = 0;
     let median = teamCount;
@@ -169,8 +171,8 @@ export function simulateSeason(
       }
     }
 
-    const expectedWins = winTotals[team] / SIMULATIONS;
-    const expectedLosses = lossTotals[team] / SIMULATIONS;
+    const expectedWins = winTotals[team] / runs;
+    const expectedLosses = lossTotals[team] / runs;
 
     return {
       team: row.team,
@@ -188,7 +190,7 @@ export function simulateSeason(
   });
 
   return {
-    simulations: SIMULATIONS,
+    simulations: runs,
     projections,
     model: { homeWinRate: league.homeWinRate, drawRate, priorGames: PRIOR_GAMES },
   };

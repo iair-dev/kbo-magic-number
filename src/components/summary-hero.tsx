@@ -24,7 +24,7 @@ export function SummaryHero({
   const clinched = magic === 0;
 
   return (
-    <section className="hero panel" aria-labelledby="hero-title">
+    <section className="hero panel" id="summary" aria-labelledby="hero-title">
       <div className="hero-main">
         <p className="section-kicker">1위 {leader.team} · 우승 매직넘버</p>
         <p className="hero-figure" id="hero-title">

@@ -2,12 +2,14 @@
 
 import { useCallback, useMemo, useState } from "react";
 import { ProbabilityBars } from "@/components/charts/probability-bars";
+import { ProbabilityHistoryChart } from "@/components/charts/probability-history";
 import { RankHeatmap } from "@/components/charts/rank-heatmap";
 import { GamePicksSection } from "@/components/game-picks";
 import { MagicNumberBoard } from "@/components/magic-number-board";
 import { MatchupMatrix } from "@/components/matchup-matrix";
 import { ProjectionTable } from "@/components/projection-table";
 import { ScenarioBoard } from "@/components/scenario-board";
+import { SectionNav } from "@/components/section-nav";
 import { SummaryHero } from "@/components/summary-hero";
 import { TeamStatsTable } from "@/components/team-stats-table";
 import { ThemeToggle } from "@/components/theme-toggle";
@@ -172,6 +174,8 @@ export function RaceDashboard({ model }: { model: DashboardModel }) {
         </div>
       </header>
 
+      <SectionNav />
+
       <main id="main">
         <div className="dashboard-heading">
           <p className="section-kicker">{model.season} KBO RACE SIMULATOR</p>
@@ -230,10 +234,6 @@ export function RaceDashboard({ model }: { model: DashboardModel }) {
           </div>
         </section>
 
-        <MagicNumberBoard numbers={model.numbers} />
-
-        <TeamStatsTable standings={model.standings} stats={model.stats} />
-
         <ScenarioBoard
           standings={model.standings}
           projections={projectionByTeam}
@@ -257,6 +257,22 @@ export function RaceDashboard({ model }: { model: DashboardModel }) {
           picks={picks}
           onSelect={selectOutcome}
         />
+
+        <section className="data-section" id="history">
+          <SectionHeading
+            kicker="SEASON TIMELINE"
+            title="주차별 확률 추이"
+            aside={`${model.history.points.length}개 주차`}
+            description="완료 경기에서 매 시점의 순위를 역산하고, 그때 남아 있던 일정으로 다시 시뮬레이션했습니다. 팀 위에 마우스를 올리면 모든 패널이 같은 주차를 가리킵니다."
+          />
+          <article className="panel chart-panel">
+            <ProbabilityHistoryChart history={model.history} teams={teams} />
+          </article>
+        </section>
+
+        <MagicNumberBoard numbers={model.numbers} />
+
+        <TeamStatsTable standings={model.standings} stats={model.stats} />
 
         <MatchupMatrix teams={teams} headToHead={model.headToHead} fixtures={fixtures} />
       </main>

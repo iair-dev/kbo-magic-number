@@ -47,6 +47,7 @@
   --heat-6: #184f95; --heat-6-ink: #ffffff;
   --heat-7: #0d366b; --heat-7-ink: #ffffff;
 
+  --nav-bg: rgba(244, 242, 237, .97);
   --radius: 16px;
   --shadow: 0 12px 35px rgba(20, 25, 35, .045);
   --focus: 0 0 0 3px rgba(42, 120, 214, .45);
@@ -94,6 +95,7 @@
     --heat-6: #86b6ef; --heat-6-ink: #0b0b0b;
     --heat-7: #b7d3f6; --heat-7-ink: #0b0b0b;
 
+    --nav-bg: rgba(14, 16, 20, .97);
     --shadow: 0 12px 35px rgba(0, 0, 0, .3);
   }
 }
@@ -139,6 +141,7 @@
   --heat-6: #86b6ef; --heat-6-ink: #0b0b0b;
   --heat-7: #b7d3f6; --heat-7-ink: #0b0b0b;
 
+  --nav-bg: rgba(14, 16, 20, .97);
   --shadow: 0 12px 35px rgba(0, 0, 0, .3);
 }
 
@@ -554,3 +557,91 @@ footer p { margin: 4px 0 0; }
 /* KIA처럼 세 글자인 약칭은 원 안에 맞게 줄인다. */
 .team-mark[data-length="3"] { font-size: 11px; letter-spacing: -.1em; }
 .team-mark--small[data-length="3"] { font-size: 7.5px; }
+
+/* ============================================================ 주차별 추이 */
+.history-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; margin-bottom: 14px; }
+.history-toolbar .chart-legend { margin-bottom: 0; }
+.history-readout { display: flex; align-items: center; gap: 10px; font-size: 11px; color: var(--muted); }
+.history-readout b { color: var(--ink); font-size: 12px; }
+.history-readout button { padding: 6px 11px; border: 1px solid var(--line-strong); border-radius: 100px; background: var(--card); color: var(--ink-2); font-size: 11px; font-weight: 800; cursor: pointer; }
+.history-readout button:hover { border-color: var(--ink-2); color: var(--ink); }
+.history-readout button[aria-pressed="true"] { background: var(--ink); border-color: var(--ink); color: var(--card); }
+
+.history-grid { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 12px; }
+.history-panel { min-width: 0; }
+.history-panel > header { display: flex; align-items: center; justify-content: space-between; gap: 6px; margin-bottom: 4px; }
+.history-panel > header b { font-size: 12px; }
+.history-values { display: flex; align-items: baseline; gap: 5px; white-space: nowrap; }
+.history-values b { color: var(--series-title); font-size: 12px; font-weight: 900; }
+.history-values small { color: var(--muted); font-size: 10px; font-weight: 700; }
+.history-panel svg { display: block; width: 100%; height: auto; cursor: crosshair; border-radius: 6px; }
+.history-panel svg:focus-visible { outline: 0; box-shadow: var(--focus); }
+
+.history-grid-line { stroke: var(--grid); stroke-width: 1; }
+.history-axis { stroke: var(--axis); stroke-width: 1; }
+.history-area { stroke: none; }
+.history-area--title { fill: var(--series-title); }
+.history-area--playoff { fill: var(--series-playoff); }
+/* 테두리가 아니라 두 띠 사이의 간격. 표면색으로 칠한다. */
+.history-gap { fill: none; stroke: var(--card); stroke-width: 2; }
+.history-cursor line { stroke: var(--ink); stroke-width: 1; opacity: .5; }
+.history-dot { stroke: var(--card); stroke-width: 2; }
+.history-dot--title { fill: var(--series-title); }
+.history-dot--playoff { fill: var(--series-playoff); }
+
+.history-axis-labels { display: flex; justify-content: space-between; margin-top: 3px; color: var(--muted); font-size: 9px; }
+
+.history-table { min-width: 860px; }
+.history-table th[scope="row"] { text-align: left; font-weight: 700; color: var(--ink); }
+.history-table td { height: 44px; text-align: center; }
+.history-table td b { display: block; color: var(--series-title); font-size: 12px; }
+.history-table td small { color: var(--muted); font-size: 10px; }
+
+@media (max-width: 1080px) { .history-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+@media (max-width: 700px)  { .history-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+
+/* ============================================================ 섹션 바로가기 (GNB) */
+/* 헤더는 스크롤과 함께 올라가고 이 바만 남아 목차 역할을 한다. */
+.section-nav {
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  border-bottom: 1px solid var(--line);
+  background: var(--nav-bg);
+  backdrop-filter: saturate(150%) blur(12px);
+}
+.section-nav-list {
+  max-width: 1216px;
+  margin: 0 auto;
+  padding: 9px 0;
+  display: flex;
+  gap: 4px;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scrollbar-width: none;
+}
+.section-nav-list::-webkit-scrollbar { display: none; }
+.section-nav-list a {
+  flex: 0 0 auto;
+  padding: 8px 13px;
+  border-radius: 100px;
+  color: var(--ink-2);
+  text-decoration: none;
+  font-size: 12px;
+  font-weight: 800;
+  white-space: nowrap;
+  transition: background .15s, color .15s;
+}
+.section-nav-list a:hover { color: var(--ink); background: var(--card); }
+.section-nav-list a[aria-current="true"] { color: var(--card); background: var(--ink); }
+
+/* 스티키 바에 제목이 가리지 않도록 앵커 도착점을 내린다. */
+.hero, .data-section, .scenario-section, .projection-panel { scroll-margin-top: 74px; }
+
+@media (max-width: 900px) {
+  .section-nav-list { padding-left: 18px; padding-right: 18px; }
+}
+@media (max-width: 600px) {
+  .section-nav-list { padding-top: 7px; padding-bottom: 7px; }
+  .section-nav-list a { padding: 7px 11px; font-size: 11px; }
+}
