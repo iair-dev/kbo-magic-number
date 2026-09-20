@@ -1,0 +1,16 @@
+services:
+  web:
+    build: .
+    container_name: kbo-magic-number
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:${APP_PORT:-3100}:3000"
+    env_file:
+      - path: .env.local
+        required: false
+    networks:
+      - iair-network
+
+networks:
+  iair-network:
+    external: true

@@ -1,0 +1,53 @@
+# 화면은 KBO에서 직접 읽고 5분간 캐시하므로 이 CronJob이 없어도 동작합니다.
+# 다만 PostgreSQL 스냅샷이 쌓이지 않아 KBO가 응답하지 않을 때 폴백이 비어 있게 됩니다.
+# 10분마다 /api/sync를 불러 순위·경기 스냅샷을 남깁니다.
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: kbo-sync
+  namespace: kbo
+spec:
+  schedule: "*/10 * * * *"
+  timeZone: Asia/Seoul
+  # 앞 실행이 밀렸을 때 겹쳐 돌면 같은 스냅샷을 두 번 씁니다.
+  concurrencyPolicy: Forbid
+  # 컨트롤러가 멈췄다 돌아왔을 때 밀린 실행을 몰아서 돌리지 않습니다.
+  startingDeadlineSeconds: 300
+  successfulJobsHistoryLimit: 1
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 2
+      ttlSecondsAfterFinished: 3600
+      template:
+        spec:
+          restartPolicy: Never
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 65534
+            runAsGroup: 65534
+          containers:
+            - name: sync
+              image: curlimages/curl:8.11.1
+              securityContext:
+                allowPrivilegeEscalation: false
+                capabilities: {drop: [ALL]}
+                readOnlyRootFilesystem: true
+              env:
+                - name: SYNC_SECRET
+                  valueFrom:
+                    secretKeyRef: {name: kbo-magic-number, key: SYNC_SECRET}
+              command: ["/bin/sh", "-c"]
+              args:
+                # --fail 로 4xx/5xx를 종료코드로 올려 Job이 실패로 남게 합니다.
+                # KBO 수집까지 포함해 한 번에 끝나므로 넉넉히 120초를 줍니다.
+                - |
+                  set -eu
+                  curl --fail --silent --show-error --max-time 120 \
+                    -X POST http://kbo-magic-number.kbo.svc.cluster.local/api/sync \
+                    -H "Authorization: Bearer $SYNC_SECRET"
+                  echo
+              resources:
+                requests: {cpu: 10m, memory: 16Mi}
+                limits:   {cpu: 100m, memory: 64Mi}

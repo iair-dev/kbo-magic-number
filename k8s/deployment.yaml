@@ -1,0 +1,112 @@
+# k3s(production) 배포 매니페스트. Actions가 image 줄의 태그를 커밋 SHA로 치환합니다.
+#
+# 사전에 네임스페이스에 secret 두 개가 있어야 합니다. README의 "k3s 배포" 참고.
+#   ocir-cred             /workpsace/infra/oracle/registry/ocir-pull-secret.sh kbo
+#   postgres-credentials  database 네임스페이스에서 복사
+# SYNC_SECRET은 sealed-secret.yaml이 만들므로 손으로 만들지 않습니다.
+#
+# 네임스페이스는 ArgoCD의 CreateNamespace=true가 만듭니다. 여기에 두지 않는 이유는
+# prune이 켜진 상태에서 이 파일에서 지워지면 네임스페이스째 삭제되면서
+# 손으로 만든 시크릿까지 함께 날아가기 때문입니다.
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: kbo-magic-number
+  namespace: kbo
+spec:
+  # Next.js가 KBO 응답과 계산 결과를 프로세스 메모리에 5분간 캐시합니다.
+  # 파드를 늘리면 캐시가 파드별로 따로 놀아 새로고침할 때마다 숫자가 튑니다.
+  replicas: 1
+  # 읽기 전용 웹이라 잠깐 겹쳐도 문제가 없습니다. maxUnavailable: 0이라
+  # 배포 중에도 끊기지 않습니다.
+  strategy:
+    type: RollingUpdate
+    rollingUpdate: {maxUnavailable: 0, maxSurge: 1}
+  selector:
+    matchLabels: {app: kbo-magic-number}
+  template:
+    metadata:
+      labels: {app: kbo-magic-number}
+    spec:
+      # OCIR이 private이므로 필수입니다.
+      imagePullSecrets:
+        - name: ocir-cred
+      securityContext:
+        runAsNonRoot: true
+        # Dockerfile의 nextjs 사용자와 같은 값. 명시해 두면 이미지가 바뀌어도
+        # 루트로 뜨지 않습니다.
+        runAsUser: 1001
+        runAsGroup: 1001
+      containers:
+        - name: kbo-magic-number
+          image: icn.ocir.io/cnllupo1f1x2/kbo-magic-number:latest
+          ports: [{containerPort: 3000}]
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities: {drop: [ALL]}
+            readOnlyRootFilesystem: true
+          env:
+            # DATABASE_URL이 $(PGPASSWORD)를 쓰므로 이 항목이 먼저 와야 치환됩니다.
+            - name: PGPASSWORD
+              valueFrom:
+                secretKeyRef: {name: postgres-credentials, key: password}
+            - name: DATABASE_URL
+              value: postgresql://iair:$(PGPASSWORD)@postgres.database.svc.cluster.local:5432/iair
+            - name: KBO_SEASON
+              value: "2026"
+            - name: NODE_ENV
+              value: production
+          # SYNC_SECRET — /api/sync 호출용. CronJob이 같은 값을 씁니다.
+          envFrom:
+            - secretRef: {name: kbo-magic-number}
+          # Next.js 서버는 /app/.next/cache 에 써야 하는데 루트를 읽기전용으로
+          # 잠갔으므로 메모리 볼륨을 붙입니다.
+          volumeMounts:
+            - {name: next-cache, mountPath: /app/.next/cache}
+            - {name: tmp, mountPath: /tmp}
+          # /api/health는 DB가 없어도 200이라 기동 판정에 그대로 쓸 수 있습니다.
+          readinessProbe:
+            httpGet: {path: /api/health, port: 3000}
+            initialDelaySeconds: 3
+            periodSeconds: 10
+          livenessProbe:
+            httpGet: {path: /api/health, port: 3000}
+            initialDelaySeconds: 15
+            periodSeconds: 30
+            failureThreshold: 3
+          resources:
+            requests: {cpu: 50m,  memory: 192Mi}
+            limits:   {cpu: 500m, memory: 512Mi}
+      volumes:
+        - {name: next-cache, emptyDir: {}}
+        - {name: tmp, emptyDir: {}}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: kbo-magic-number
+  namespace: kbo
+spec:
+  selector: {app: kbo-magic-number}
+  ports: [{port: 80, targetPort: 3000}]
+---
+# Cloudflare Tunnel이 *.iair.dev를 Traefik으로 넘기므로
+# Ingress만 만들면 https://kbo.iair.dev 로 열립니다. 인증서 작업은 필요 없습니다.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: kbo-magic-number
+  namespace: kbo
+spec:
+  ingressClassName: traefik
+  rules:
+    - host: kbo.iair.dev
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: kbo-magic-number
+                port: {number: 80}

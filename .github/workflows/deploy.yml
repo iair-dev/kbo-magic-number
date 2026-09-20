@@ -1,0 +1,56 @@
+# git push → arm64 이미지 빌드 → OCIR 푸시 → 매니페스트 태그 갱신
+# infra/oracle/registry/templates/github-workflow.yml 을 따릅니다.
+#
+# 저장소 Settings → Secrets and variables → Actions 에 등록할 것:
+#   OCIR_USERNAME, OCIR_TOKEN  (infra/oracle/registry/sync-github-secrets.sh 로 일괄 등록 가능)
+name: build-and-deploy
+
+on:
+  push:
+    branches: [main]
+    # 문서만 고쳤을 때는 이미지를 다시 굽지 않습니다.
+    paths-ignore: ['README.md', '**/*.md']
+  workflow_dispatch:
+
+env:
+  REGISTRY: icn.ocir.io
+  NAMESPACE: cnllupo1f1x2
+  IMAGE: ${{ github.event.repository.name }}
+
+jobs:
+  build:
+    # 클러스터가 arm64이므로 arm64 네이티브 러너에서 빌드합니다. QEMU가 필요 없습니다.
+    runs-on: ubuntu-24.04-arm
+    permissions:
+      contents: write        # 매니페스트 태그 커밋용
+    steps:
+      - uses: actions/checkout@v5
+      - uses: docker/setup-buildx-action@v3
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ secrets.OCIR_USERNAME }}
+          password: ${{ secrets.OCIR_TOKEN }}
+
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          platforms: linux/arm64
+          push: true
+          tags: |
+            ${{ env.REGISTRY }}/${{ env.NAMESPACE }}/${{ env.IMAGE }}:${{ github.sha }}
+            ${{ env.REGISTRY }}/${{ env.NAMESPACE }}/${{ env.IMAGE }}:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      # GitOps: 매니페스트의 이미지 태그를 커밋 SHA로 바꿔 push합니다.
+      # ArgoCD가 이 커밋을 감지해 배포합니다.
+      - name: bump image tag
+        run: |
+          sed -i "s|image: .*/${IMAGE}:.*|image: ${REGISTRY}/${NAMESPACE}/${IMAGE}:${GITHUB_SHA}|" k8s/deployment.yaml
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add k8s/deployment.yaml
+          git diff --staged --quiet || git commit -m "deploy: ${IMAGE}:${GITHUB_SHA::7}"
+          git push
