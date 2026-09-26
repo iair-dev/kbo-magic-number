@@ -71,7 +71,7 @@ GitHub Actions가 arm64 이미지를 빌드해 OCIR에 올리고, ArgoCD가 `k8s
 
 | 항목 | 값 |
 | --- | --- |
-| URL | https://kbo.iair.dev |
+| URL | https://kbo.iair.app (2026-09-26 kbo.iair.dev에서 이전. 예전 주소는 301로 넘어옵니다) |
 | 네임스페이스 | `kbo` |
 | 이미지 | `icn.ocir.io/cnllupo1f1x2/kbo-magic-number` |
 | DB | `postgres.database.svc.cluster.local:5432` (클러스터 내부 전용) |

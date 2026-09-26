@@ -94,8 +94,9 @@ spec:
   selector: {app: kbo-magic-number}
   ports: [{port: 80, targetPort: 3000}]
 ---
-# Cloudflare Tunnel이 *.iair.dev를 Traefik으로 넘기므로
-# Ingress만 만들면 https://kbo.iair.dev 로 열립니다. 인증서 작업은 필요 없습니다.
+# Cloudflare Tunnel이 *.iair.app을 Traefik으로 넘기므로
+# Ingress만 만들면 https://kbo.iair.app 으로 열립니다. 인증서 작업은 필요 없습니다.
+# 예전 주소 kbo.iair.dev는 /workspace/infra/oracle/k3s/traefik/legacy-app-redirect.yaml이 이쪽으로 301 리다이렉트합니다.
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
@@ -104,7 +105,7 @@ metadata:
 spec:
   ingressClassName: traefik
   rules:
-    - host: kbo.iair.dev
+    - host: kbo.iair.app
       http:
         paths:
           - path: /
