@@ -43,7 +43,7 @@ spec:
         fsGroup: 1001
       containers:
         - name: kbo-magic-number
-          image: icn.ocir.io/cnllupo1f1x2/kbo-magic-number:afb3e6f47f69fb97f1bd6cf1a8730ca5e7faf6a6
+          image: icn.ocir.io/cnllupo1f1x2/kbo-magic-number:2a4cc5f026bddc723e2b29f814851d7cdc1bde83
           ports: [{containerPort: 3000}]
           securityContext:
             allowPrivilegeEscalation: false
