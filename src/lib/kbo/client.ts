@@ -1,6 +1,5 @@
 import "server-only";
 
-import { unstable_cache } from "next/cache";
 import {
   SERIES_GAMES,
   type DashboardData,
@@ -257,9 +256,3 @@ export async function fetchLiveDashboard(): Promise<DashboardData> {
     source: "KBO",
   };
 }
-
-export const getCachedLiveDashboard = unstable_cache(
-  fetchLiveDashboard,
-  ["kbo-live-dashboard-v2"],
-  { revalidate: 300 },
-);

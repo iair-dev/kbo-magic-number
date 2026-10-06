@@ -44,9 +44,24 @@ spec:
                 # KBO 수집까지 포함해 한 번에 끝나므로 넉넉히 120초를 줍니다.
                 - |
                   set -eu
+                  APP=http://kbo-magic-number.kbo.svc.cluster.local
+
+                  # 1) DB 스냅샷 적재
                   curl --fail --silent --show-error --max-time 120 \
-                    -X POST http://kbo-magic-number.kbo.svc.cluster.local/api/sync \
+                    -X POST "$APP/api/sync" \
                     -H "Authorization: Bearer $SYNC_SECRET"
+                  echo
+
+                  # 2) 페이지 모델 캐시 데우기
+                  # 이 캐시는 stale-while-revalidate라 만료 뒤 첫 요청이 옛 값을
+                  # 받고 갱신은 뒤에서 돈다. 방문이 뜸하면 아무도 갱신을 깨우지
+                  # 않아 며칠 묵은 값이 방문자에게 그대로 나갔다(2026-10-06 확인).
+                  # 여기서 한 번 받아 그 stale 응답을 대신 흡수하고, 갱신이 끝날
+                  # 틈을 준 뒤 한 번 더 받아 실제 시각을 로그에 남긴다.
+                  curl --fail --silent --output /dev/null --max-time 180 "$APP/"
+                  sleep 20
+                  curl --fail --silent --max-time 180 "$APP/" \
+                    | grep -o 'updatedAt[^,]*' | head -1 || echo "updatedAt 확인 실패"
                   echo
               resources:
                 requests: {cpu: 10m, memory: 16Mi}
